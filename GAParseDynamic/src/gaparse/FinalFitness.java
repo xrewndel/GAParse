@@ -13,9 +13,8 @@ import java.util.TreeSet;
  * @author Andrew
  */
 public class FinalFitness {
-    private Map<Integer, List<Double>> fit = new HashMap<>(); // fitness num -> values. Fitness num is 1 or 2 (for now)
-    //private Map<String, Map<Integer, List<Double>>> fileFitness = new HashMap<>();  // предусмотреть логику удаления если значения не заполнены
-    private Map<String, Map<Integer, Double>> fileFitness = new HashMap<>();  // предусмотреть логику удаления если значения не заполнены
+    private Map<Integer, List<Double>> fit = new HashMap<>(); 
+    private Map<String, Map<Integer, Double>> fileFitness = new HashMap<>();
     private String currFile = "";
     
     public FinalFitness() {}
