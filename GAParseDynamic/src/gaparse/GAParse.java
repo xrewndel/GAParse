@@ -6,11 +6,8 @@ import java.io.FileReader;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,13 +21,15 @@ import org.apache.log4j.PatternLayout;
  * @author Andrew
  */
 public class GAParse {
-    public final static Logger log = Logger.getLogger(LOG.main.$());
+    public final static Logger main = Logger.getLogger(LOG.main.$());
+    public final static Logger bst = Logger.getLogger(LOG.best.$());
+    public final static Logger flw = Logger.getLogger(LOG.flow.$());
+    public final static Logger cleanLog = Logger.getLogger(LOG.clean.$());
+    
     private static String path = "";
     private static Map<Integer, Stat> stats = new HashMap<>();
     private static Double bestFitness = 0d;
     private static String bestFile = "";
-    //private final static String strPattern = "(\\d)(.)(\\d+)( )(\\d){1,3}(.?)";
-    //private final static String fitGen = "(\\d.\\d+)( ){1}(\\d+)";
     public static Pattern fitGeneneration = Pattern.compile("(\\d.\\d+)( ){1}(\\d+)");  // "0.43493720518041723 3"
     public static Pattern finalFitness = Pattern.compile("(^Fitness)(\\d)( = )(.*)()"); // "Fitness2 = 0.7878027422306279"
     // Fitness flow 4 40% 4 stat update = 0.5597242201790585
@@ -56,7 +55,7 @@ public class GAParse {
             try {
                 read(file.getAbsolutePath());
                 System.out.println("Stats: " + stats.size());
-            }catch (IOException ex) { log.info(ex);  }
+            }catch (IOException ex) { main.info(ex);  }
         }
         
         System.out.println("bestFitness: " + bestFitness);
@@ -64,17 +63,17 @@ public class GAParse {
         
         for (int i = 0; i < stats.size(); i++) {
             Stat stat = stats.get(i);
-            log.info(stat.avgFit() + " " + stat.id());
+            main.info(stat.avgFit() + " " + stat.id());
         }
         
         System.out.println("FinalFitness");
         System.out.println("Validation1: " + ff.validation1());
         System.out.println("Validation2: " + ff.validation2());
         if (ff.valid()) {
-            log.info("Diff1: " + ff.diff());
+            main.info("Diff1: " + ff.diff());
             Map<String, Double> m = ff.diff2();
             for (String s : m.keySet()) {
-                log.info(s + ": " + m.get(s));
+                main.info(s + ": " + m.get(s));
                 System.out.println(s + ": " + m.get(s));
             }
             ff.diffPositive();
@@ -83,6 +82,9 @@ public class GAParse {
         
         System.out.println(ff.csv());
         System.out.println(ff);
+        
+        flow.clean();
+        System.out.println("AVG: " + flow.avgFlow());
     }
     
     public static File[] getFilesInDir(String path) {
@@ -98,7 +100,9 @@ public class GAParse {
     
     // Чтение локального файла построчно
     public static void read(String filename) throws IOException {
+        bst.debug(filename); flw.debug(filename);
         ff.add(filename);
+        flow.setFile(filename);
         BufferedReader in = new BufferedReader(new FileReader(filename));
         while (in.ready()) {
             String s = in.readLine();
@@ -130,19 +134,13 @@ public class GAParse {
             
             if (flowMatch.find()) {
                 System.out.println("match flow: " + s);
-                //for (int i = 0; i < flowMatch.groupCount(); i++) {
-                //    System.out.println("Group " + i + ":" + flowMatch.group(i));
-                //}
-                //System.out.println("");
+                flw.debug(s);
                 flow.addFlow(flowMatch);
             }
             
             if (bestMatch.find()) {
                 System.out.println("match best: " + s);
-//                for (int i = 0; i < bestMatch.groupCount(); i++) {
-//                    System.out.println("Group " + i + ":" + bestMatch.group(i));
-//                }
-//                System.out.println("");
+                bst.debug(s);
                 flow.addBest(bestMatch);
             }
         }
@@ -151,9 +149,12 @@ public class GAParse {
     
     private static final String PATTERN = "%m%n";
     private static final String PATTERN1 = "%d [%c] %-5p %m%n"; // default log4j pattern
+    private static final String date = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss").format(new Date());
     public enum LOG {
-        main    ("main",    PATTERN),
-        out     ("out",     PATTERN);
+        main ("gaparseMain", PATTERN),
+        flow ("gaparseFlow", PATTERN),
+        best ("gaparseBest", PATTERN),
+        clean("gaparseClean", PATTERN);
         
         private final String log;  
         private final String pattern;  
@@ -161,9 +162,7 @@ public class GAParse {
         
         public String $() { return log; }
         private String pattern() { return pattern; }
-        private String logFile() { return "./log/gaparseDynamic" + "-" + new SimpleDateFormat("yyyy-MM-dd HH-mm-ss").format(new Date()) + ".log"; }
-        private static final List<LOG> undefLog = new ArrayList<>(Arrays.asList(LOG.values()));
-        static { undefLog.remove(out); }
+        private String logFile() { return "./log/" + $() + "-" + date + ".log"; }
         
         public static void init() {
             Level dbg = Level.DEBUG;
@@ -179,7 +178,7 @@ public class GAParse {
             //console.activateOptions();
             //rootLogger.addAppender(console);
 
-            for (LOG log : undefLog) {
+            for (LOG log : values()) {
                 FileAppender fa = new FileAppender();
                 fa.setName(log.$());
                 fa.setFile(log.logFile());

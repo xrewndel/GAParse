@@ -1,9 +1,13 @@
 package gaparse;
 
+import static gaparse.GAParse.cleanLog;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 
 /**
@@ -11,30 +15,24 @@ import java.util.regex.Matcher;
  * @author Andrew
  */
 public class Flow {
-    public Map<Integer, List<Data>> flow = new HashMap<>();
-    public Map<Integer, List<Double>> best = new HashMap<>();
+    public Map<Integer, List<Data>> flow = new TreeMap<>();
+    Map<String, List<Data>> dataByFile = new TreeMap<>();
+    public Map<Integer, List<Double>> best = new TreeMap<>();
+    public Set<Integer> procs = new TreeSet<>();
+    private String currFile;
     
     public Flow() {}
     public void addFlow(Matcher m) {
-        //Group 0:Fitness flow 2 100% 5 stat update = 0.6811394218976246
-        //Group 1:Fitness flow 
-        //Group 2:2
-        //Group 3: 
-        //Group 4:100
-        //Group 5:5
-        //Group 6: stat update = 
-        //Group 7:0.6811394218976246
-        //Data(int n, double p, int e, double f) { num = n; proc = p; evoCycle = e; fitness = f; }
-        Data data = new Data(m.group(2), m.group(4), m.group(5), m.group(7));
+        Data data = new Data(m.group(2), m.group(4), m.group(5), m.group(7), currFile);
         if (!flow.containsKey(data.flowNum())) flow.put(data.flowNum(), new ArrayList<Data>());
         flow.get(data.flowNum()).add(data);
+        
+        procs.add(data.proc());
+        
+        if (!dataByFile.containsKey(currFile)) dataByFile.put(currFile, new ArrayList<Data>());
+        dataByFile.get(currFile).add(data);
     }
     
-    //Group 0:Fitness best 5 = 0.6371098605787752
-    //Group 1:Fitness best 
-    //Group 2:5
-    //Group 3: = 
-    //Group 4:0.6371098605787752
     public void addBest(Matcher m) { 
         int flowNum = Integer.valueOf(m.group(2));
         if (!best.containsKey(flowNum)) best.put(flowNum, new ArrayList<Double>());
@@ -43,103 +41,97 @@ public class Flow {
     
     public int flowSize() { return flow.size(); }
     public int bestSize() { return best.size(); }
+    public void setFile(String file) { currFile = file; }
     
+    public void clean() {
+        Map<String, List<Data>> cleanData = new TreeMap<>();
+        List<Integer> flowNums = new ArrayList<>(flow.keySet());
+        //int flowDiff = flowNums.get(1) - flowNums.get(0);
+        cleanLog.debug("flowNums: " + flowNums);
+        
+        List<Integer> procNums = new ArrayList<>(procs);
+        cleanLog.debug("procNums: " + procNums);
+        //int procDiff = procNums.get(1) - procNums.get(0);
+        
+        for (String file : dataByFile.keySet()) {
+            cleanData.put(file, new ArrayList<Data>());
+            
+            for (int i = 0, j = procNums.size() - 1; i < flowNums.size(); i++, j--) {
+                cleanLog.debug("flowNums: " + flowNums.get(i));
+                cleanLog.debug("proc: " + procNums.get(j));
+                for (Data d : dataByFile.get(file)) {
+                    if (d.flowNum() == flowNums.get(i) && d.proc() == procNums.get(j)) {
+                        cleanData.get(file).add(d);
+                        //break;
+                    }
+                }
+            }
+        }
+        
+        for (String file : cleanData.keySet()) {
+            cleanLog.debug(file);
+            for (Data d : cleanData.get(file)) {
+                cleanLog.debug(d.asLog());
+            }
+        }
+    }
     
-//    public Map<Integer, Double> sumFit() { 
-//        Map<Integer, Double> res = new HashMap<>();
-//        for (Integer fitNum : fit.keySet()) {
-//            double sum = 0d;
-//            for (Double d : fit.get(fitNum)) 
-//                sum += d;
-//            
-//            res.put(fitNum, sum / fit.get(fitNum).size());
-//        }
-//        
-//        return res;
-//    }
+    // flow : <proc : sum>
+    public Map<Integer, Map<Integer, Double>> avgFlow() {
+        Map<Integer, Map<Integer, Double>> res = new TreeMap<>();
+        // proc : procSize
+        Map<Integer, Integer> proc_DataNum = new TreeMap<>(); // кол-во data с определенным proc
+        
+        for (Integer flowNum : flow.keySet()) {
+            if (!res.containsKey(flowNum)) res.put(flowNum, new TreeMap<Integer, Double>());
+            for (Data d : flow.get(flowNum)) {
+                if (!res.get(flowNum).containsKey(d.proc())) 
+                    res.get(flowNum).put(d.proc(), 0d);
+                
+                if (!proc_DataNum.containsKey(d.proc())) proc_DataNum.put(d.proc(), 0);
+                int procNum = proc_DataNum.get(d.proc());
+                procNum++;
+                proc_DataNum.put(d.proc(), procNum);
+                
+                double sum = res.get(flowNum).get(d.proc());
+                sum += d.fitness();
+                res.get(flowNum).put(d.proc(), sum);
+            }
+        }
+        
+        System.out.println("res: " + res);
+        System.out.println("proc_DataNum: " + proc_DataNum);
+        
+        // calc avg
+        // flow : <proc : sum>
+        Map<Integer, Map<Integer, Double>> avg = new TreeMap<>();
+        for (Integer flowNum : res.keySet()) {
+            if (!avg.containsKey(flowNum)) avg.put(flowNum, new TreeMap<Integer, Double>());
+            for (Integer proc : res.get(flowNum).keySet()) {
+                
+                double average = res.get(flowNum).get(proc) / proc_DataNum.get(proc);
+                System.out.println("avg: " + average);
+                Map<Integer, Double> avgVal = new TreeMap<>();
+                avgVal.put(proc, average);
+                avg.get(flowNum).putAll(avgVal);
+            }
+        }
+        
+        return avg;
+    }
     
-//    public Map<String, Double> diff() { 
-//        Map<String, Double> res = new HashMap<>();
-//        int prevFitNum = -1;
-//        Map<Integer, Double> sum = sumFit();
-//        Set<Integer> sort = new TreeSet<>(sum.keySet());
-//        for (Integer fitNum : sort) {
-//            if (prevFitNum == -1) {
-//                prevFitNum = fitNum;
-//                continue;
-//            }
-//            
-//            double d = sum.get(fitNum) - sum.get(prevFitNum);
-//            res.put(fitNum + "-" + prevFitNum, d);
-//        }
-//        
-//        return res; 
-//    }
+    public Map<Integer, Double> sumBest() { 
+        Map<Integer, Double> res = new HashMap<>();
+        for (Integer flowNum : best.keySet()) {
+            double sum = 0d;
+            for (Double d : best.get(flowNum)) sum += d;
+            
+            res.put(flowNum, sum);
+        }
+        
+        return res;
+    }
     
-//    public Map<String, Double> diff2() { 
-//        Map<String, Double> res = new HashMap<>();
-//        double maxDiff = 0;
-//        String maxDiffFile = "";
-//        double sum = 0d;
-//        double sumPositive = 0d;
-//        for (String file : fileFitness.keySet()) {
-//            int prevFitNum = -1;
-//            Set<Integer> sort = new TreeSet<>(fileFitness.get(file).keySet());
-//            for (Integer fitNum : sort) {
-//                if (prevFitNum == -1) {
-//                    prevFitNum = fitNum;
-//                    continue;
-//                }
-//                double d = fileFitness.get(file).get(fitNum) - fileFitness.get(file).get(prevFitNum);
-//                if (d < 0) System.out.println(file + ": "  + d);
-//                if (d > 0) sumPositive += d;
-//                if (d > maxDiff) {
-//                    maxDiff = d;
-//                    maxDiffFile = file;
-//                }
-//                
-//                sum += fileFitness.get(file).get(fitNum) - fileFitness.get(file).get(prevFitNum);
-//            }
-//        }
-//        
-//        System.out.println("fileFitness size: " + sum / fileFitness.size());
-//        System.out.println("fileFitness positive: " + sumPositive / fileFitness.size());
-//        System.out.println("fileFitness: " + fileFitness.size());
-//        
-//        for (Integer i : fit.keySet()) {
-//            System.out.println("fit" + i +": " + fit.get(i).size());
-//            System.out.println("fit" + i +": " + sum / fit.get(i).size());
-//            System.out.println("fit" + i +" positive: " + sumPositive / fit.get(i).size());
-//        }
-//        
-//        
-//        res.put(maxDiffFile, maxDiff);
-//        res.put("Total diff", sum);
-//
-//        return res; 
-//    }
-//    
-//    public Map<String, Double> diffPositive() { 
-//        Map<String, Double> res = new HashMap<>();
-//        int prevFitNum = -1;
-//        Map<Integer, Double> sum = sumFit();
-//        Set<Integer> sort = new TreeSet<>(sum.keySet());
-//        for (Integer fitNum : sort) {
-//            if (prevFitNum == -1) {
-//                prevFitNum = fitNum;
-//                continue;
-//            }
-//            
-//            double d = sum.get(fitNum) - sum.get(prevFitNum);
-//            if (d < 0) System.out.println("d: "  + d);
-//            res.put(fitNum + "-" + prevFitNum, d);
-//        }
-//        
-//        return res; 
-//    }
-//    
-//    public boolean valid () { return validation1() && validation2(); }
-//    
 //    public String csv() {
 //        StringBuilder sb = new StringBuilder();
 //        int idx = 0;
@@ -154,13 +146,6 @@ public class Flow {
 //        return sb.toString();
 //    }
     
-//    @Override public String toString() {
-//        StringBuilder sb = new StringBuilder();
-//        for (String s : fileFitness.keySet()) sb.append(s).append(": ").append(fileFitness.get(s)).append("\n");
-//        for (Integer i: fit.keySet()) sb.append(i).append(": ").append(fit.get(i)).append("\n");
-//        
-//        return sb.toString();
-//    }
 }
 
 class Data {
@@ -168,16 +153,21 @@ class Data {
     private int proc;
     private int evoCycle;
     private double fitness;
+    private String file;
     
-    Data(int n, int p, int e, double f) { flowNum = n; proc = p; evoCycle = e; fitness = f; }
-    Data(String n, String p, String e, String f) { 
+    Data(int n, int p, int e, double fit, String fl) { flowNum = n; proc = p; evoCycle = e; fitness = fit; file = fl;}
+    Data(String n, String p, String e, String fit, String fl) { 
         flowNum = Integer.valueOf(n); 
         proc = Integer.valueOf(p); 
         evoCycle = Integer.valueOf(e); 
-        fitness = Double.valueOf(f); 
+        fitness = Double.valueOf(fit); 
+        file = fl;
     }
     
     public int flowNum() { return flowNum; }
+    public double fitness() { return fitness; }
+    public int proc() { return proc; }
+    public String file() { return file; }
     
     @Override public int hashCode() {
         int hash = 5;
@@ -200,5 +190,9 @@ class Data {
     
     @Override public String toString() {
         return "Data{" + "flowNum=" + flowNum + ", proc=" + proc + ", evoCycle=" + evoCycle + ", fitness=" + fitness + '}';
+    }
+    
+    public String asLog() {
+        return "Fitness flow " + flowNum + " " + proc + "% " + evoCycle + " stat update = " + fitness;
     }
 }
