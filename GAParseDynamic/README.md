@@ -1,3 +1,3 @@
 GAParser
 ========
-Arguments: gaparser.cfg D:\tmp\log
+Arguments: D:\tmp\log
