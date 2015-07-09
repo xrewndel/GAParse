@@ -28,9 +28,9 @@ public class GAParse {
     //private final static String fitGen = "(\\d.\\d+)( ){1}(\\d+)";
     public static Pattern fitGeneneration = Pattern.compile("(\\d.\\d+)( ){1}(\\d+)");  // "0.43493720518041723 3"
     public static Pattern finalFitness = Pattern.compile("(^Fitness)(\\d)( = )(.*)()"); // "Fitness2 = 0.7878027422306279"
-    public static Pattern flow = Pattern.compile("(^Fitness flow )(\\d )(.*)()"); // Fitness flow 4 40% 4 stat update = 0.5597242201790585
-    public static Pattern best = Pattern.compile("(^Fitness best )(\\d )(.*)()"); // Fitness best 1 = 0.44003893124571014
-    public static Pattern evo = Pattern.compile("(----Evolution_)(\\d )(.*)()"); // [genetic.Jgap.evoCycleAdd(Jgap.java:147)]:----Evolution_1
+    public static Pattern flowPtrn = Pattern.compile("(^Fitness flow )(\\d )(.*)()"); // Fitness flow 4 40% 4 stat update = 0.5597242201790585
+    public static Pattern bestPtrn = Pattern.compile("(^Fitness best )(\\d )(.*)()"); // Fitness best 1 = 0.44003893124571014
+    public static Pattern evoPtrn = Pattern.compile("(----Evolution_)(\\d )(.*)()"); // [genetic.Jgap.evoCycleAdd(Jgap.java:147)]:----Evolution_1
     private static FinalFitness ff = new FinalFitness();
     
     public static void main(String[] args) {
