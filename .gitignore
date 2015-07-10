@@ -12,10 +12,14 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-/GAParseDynamic/nbproject/
-/GAParseDynamic/nbproject/private/
-/GAParseDynamic/log
-/GAParseAvg/nbproject/private/
-/GAParseAvg/build/
-/GAParseAvg/log
-*/log
+#/GAParseDynamic/nbproject/
+#/GAParseDynamic/nbproject/private/
+#/GAParseDynamic/log
+#/GAParseAvg/nbproject/private/
+#/GAParseAvg/build/
+#/GAParseAvg/log
+*/log/
+*/nbproject/
+*/build/
+#/GAParser/nbproject/private/
+#/GAParser/build/
