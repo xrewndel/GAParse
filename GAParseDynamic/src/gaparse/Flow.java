@@ -2,6 +2,7 @@ package gaparse;
 
 import static gaparse.GAParse.cleanLog;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,19 @@ public class Flow {
     public Map<Integer, List<Double>> best = new TreeMap<>();
     public Set<Integer> procs = new TreeSet<>();
     private String currFile;
+    
+    public enum PROC {
+        e2_1 (new ArrayList<>(Arrays.asList(100,50))),
+        e2_2 (new ArrayList<>(Arrays.asList(100,66,33))),
+        e2_3 (new ArrayList<>(Arrays.asList(100,75,25,50))),
+        e2_4 (new ArrayList<>(Arrays.asList(100,80,60,40,20))),
+        e2_5 (new ArrayList<>(Arrays.asList(100,80,64,48,32,16)));
+        
+        private final List<Integer> proc; PROC(List<Integer> p) { proc = p; }
+        public List<Integer> $() { return proc; }
+        
+        
+    }
     
     public Flow() {}
     public void addFlow(Matcher m) {

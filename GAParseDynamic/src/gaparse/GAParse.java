@@ -51,7 +51,6 @@ public class GAParse {
         
         File[] files = getFilesInDir(path);
         for (File file : files) {
-            // среднее считать - за сколько поколений в среднем достигается максимальнй фитнес - проще в расчетах писать и пихать в файл
             try {
                 read(file.getAbsolutePath());
                 System.out.println("Stats: " + stats.size());
@@ -172,11 +171,6 @@ public class GAParse {
                 Logger.getRootLogger().getLoggerRepository().resetConfiguration();
                 rootLogger.setLevel(dbg);
             }
-            //ConsoleAppender console = new ConsoleAppender(); //create appender
-            //console.setLayout(new PatternLayout(PATTERN)); 
-            //console.setThreshold(dbg);
-            //console.activateOptions();
-            //rootLogger.addAppender(console);
 
             for (LOG log : values()) {
                 FileAppender fa = new FileAppender();
